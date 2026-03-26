@@ -169,6 +169,7 @@ ORDER BY avg_overall_score ASC;
 npm run report:ticker-sentiment -- <TICKER>
 npm run report:ticker-counts
 npm run report:trending-tickers -- [recentDays=7] [baselineDays=28] [topN=10] [minRecentMentions=5]
+npm run report:ticker-attention-spikes -- [recentDays=3] [baselineDays=21] [topN=25] [minRecentMentions=3] [topHeadlines=3] [minBaselineMentions=5]
 ```
 
 Each report run writes to a timestamped folder and never overwrites prior outputs. Pattern:
@@ -185,3 +186,14 @@ By default, each report command also starts a local static web server and prints
 - `baseline_per_day`
 - `momentum_score`
 - `momentum_ratio`
+
+### Ticker Attention Spikes output columns
+
+- `ticker`
+- `recent_count`
+- `baseline_count`
+- `expected_count`
+- `spike_score`
+- `spike_ratio`
+- `is_new_coverage`
+- `top_recent_headlines`

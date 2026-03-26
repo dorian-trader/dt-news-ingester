@@ -12,7 +12,8 @@
     "backfill": "tsx src/backfill.ts",
     "report:ticker-counts": "node scripts/export-ticker-news-counts.mjs",
     "report:ticker-sentiment": "node scripts/export-ticker-sentiment-stats.mjs",
-    "report:trending-tickers": "node scripts/export-trending-tickers.mjs"
+    "report:trending-tickers": "node scripts/export-trending-tickers.mjs",
+    "report:ticker-attention-spikes": "node scripts/export-ticker-attention-spikes.mjs"
   },
   "engines": {
     "node": ">=20"
