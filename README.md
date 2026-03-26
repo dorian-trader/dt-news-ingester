@@ -162,3 +162,10 @@ ORDER BY avg_overall_score ASC;
 - Alpha Vantage free tiers enforce tight **rate limits**; hitting limits surfaces as an `Information` / `Note` response and the app logs an error. A **5-minute** interval is usually safe for light usage; adjust if your plan allows more throughput.
 - `time_published` from the API is parsed from `YYYYMMDDTHHMMSS` into a `Date` and stored as **ISO UTC** for stable sorting and `date()` grouping.
 - Sentiment labels are normalized to: `Bearish`, `Somewhat-Bearish`, `Neutral`, `Somewhat-Bullish`, `Bullish`; unknown values map to `Neutral`.
+
+## Stat Scripts
+
+```bash
+npm run report:ticker-sentiment -- <TICKER>
+npm run report:ticker-counts
+```
