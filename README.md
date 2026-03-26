@@ -174,6 +174,8 @@ npm run report:trending-tickers -- [recentDays=7] [baselineDays=28] [topN=10] [m
 Each report run writes to a timestamped folder and never overwrites prior outputs. Pattern:
 `data/reports/<report-name>/<UTC_TIMESTAMP>/<report-name>.<ext>` (UTC like `20260326T035533Z`).
 
+By default, each report command also starts a local static web server and prints a direct URL to the generated report (and Plotly chart HTML for sentiment/trending reports). Use `--no-serve` to generate files without starting the server.
+
 ### Trending Tickers output columns
 
 - `ticker`

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
 import Database from "better-sqlite3";
+import { startReportServer } from "./report-server.mjs";
 
 dotenv.config();
 
@@ -19,9 +20,12 @@ Output:
   data/reports/ticker-news-counts/<UTC_TIMESTAMP>/ticker-news-counts.csv
 
 Options:
+  --no-serve    Generate report file without starting web server
   -h, --help    Show this help message`);
   process.exit(0);
 }
+
+const serveEnabled = !args.includes("--no-serve");
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 const configuredSqlitePath = process.env.SQLITE_PATH ?? "./data/news.db";
@@ -66,6 +70,19 @@ try {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${lines.join("\n")}\n`, "utf8");
   console.log(`Wrote ${rows.length} rows to ${outputPath}`);
+
+  if (serveEnabled) {
+    const requestedPort = Number.parseInt(process.env.REPORT_PORT ?? "8787", 10);
+    const reportsRoot = path.resolve(projectRoot, "data", "reports");
+    const { reportUrl, baseUrl } = await startReportServer({
+      rootDir: reportsRoot,
+      reportPath: outputPath,
+      requestedPort: Number.isInteger(requestedPort) ? requestedPort : 8787,
+    });
+    console.log(`Reports server: ${baseUrl}`);
+    console.log(`Open report: ${reportUrl}`);
+    console.log("Press Ctrl+C to stop.");
+  }
 } finally {
   db.close();
 }

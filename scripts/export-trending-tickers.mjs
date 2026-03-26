@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
 import Database from "better-sqlite3";
+import { startReportServer } from "./report-server.mjs";
 
 dotenv.config();
 
@@ -30,14 +31,17 @@ Examples:
   npm run report:trending-tickers -- 7 30 15 8
 
 Options:
+  --no-serve    Generate report files without starting web server
   -h, --help    Show this help message`);
   process.exit(0);
 }
 
-const recentDays = Number.parseInt(args[0] ?? "7", 10);
-const baselineDays = Number.parseInt(args[1] ?? "28", 10);
-const topN = Number.parseInt(args[2] ?? "10", 10);
-const minRecentMentions = Number.parseInt(args[3] ?? "5", 10);
+const serveEnabled = !args.includes("--no-serve");
+const positionals = args.filter((arg) => arg !== "--no-serve");
+const recentDays = Number.parseInt(positionals[0] ?? "7", 10);
+const baselineDays = Number.parseInt(positionals[1] ?? "28", 10);
+const topN = Number.parseInt(positionals[2] ?? "10", 10);
+const minRecentMentions = Number.parseInt(positionals[3] ?? "5", 10);
 
 if (
   !Number.isInteger(recentDays) ||
@@ -145,6 +149,14 @@ try {
     timestamp,
     "trending-tickers.csv",
   );
+  const chartPath = path.resolve(
+    projectRoot,
+    "data",
+    "reports",
+    "trending-tickers",
+    timestamp,
+    "trending-tickers.html",
+  );
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
   const header =
@@ -155,10 +167,78 @@ try {
   );
 
   fs.writeFileSync(outputPath, `${header}\n${lines.join("\n")}\n`, "utf8");
+  const chartHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trending Tickers</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+  <h2>Trending tickers</h2>
+  <p>Generated at ${new Date().toISOString()}</p>
+  <div id="rate-comparison" style="width: 100%; height: 560px;"></div>
+  <div id="momentum-score" style="width: 100%; height: 460px;"></div>
+  <script>
+    const rows = ${JSON.stringify(rows)};
+    const tickers = rows.map((d) => d.ticker);
+
+    Plotly.newPlot("rate-comparison", [
+      {
+        x: tickers,
+        y: rows.map((d) => d.recent_per_day),
+        type: "bar",
+        name: "Recent mentions/day"
+      },
+      {
+        x: tickers,
+        y: rows.map((d) => d.baseline_per_day),
+        type: "bar",
+        name: "Baseline mentions/day"
+      }
+    ], {
+      barmode: "group",
+      title: "Recent vs baseline mentions/day",
+      xaxis: { title: "Ticker" },
+      yaxis: { title: "Mentions/day" }
+    });
+
+    Plotly.newPlot("momentum-score", [{
+      x: tickers,
+      y: rows.map((d) => d.momentum_score),
+      type: "bar",
+      text: rows.map((d) => "ratio: " + d.momentum_ratio),
+      hovertemplate: "%{x}<br>momentum_score=%{y}<br>%{text}<extra></extra>",
+      name: "Momentum score"
+    }], {
+      title: "Momentum score by ticker",
+      xaxis: { title: "Ticker" },
+      yaxis: { title: "Momentum score" }
+    });
+  </script>
+</body>
+</html>
+`;
+  fs.writeFileSync(chartPath, chartHtml, "utf8");
   console.log(`Wrote ${rows.length} trending tickers to ${outputPath}`);
+  console.log(`Wrote chart to ${chartPath}`);
   console.log(
     `Config: recentDays=${recentDays}, baselineDays=${baselineDays}, topN=${topN}, minRecentMentions=${minRecentMentions}`,
   );
+
+  if (serveEnabled) {
+    const requestedPort = Number.parseInt(process.env.REPORT_PORT ?? "8787", 10);
+    const reportsRoot = path.resolve(projectRoot, "data", "reports");
+    const { reportUrl, baseUrl } = await startReportServer({
+      rootDir: reportsRoot,
+      reportPath: chartPath,
+      requestedPort: Number.isInteger(requestedPort) ? requestedPort : 8787,
+    });
+    console.log(`Reports server: ${baseUrl}`);
+    console.log(`Open chart: ${reportUrl}`);
+    console.log("Press Ctrl+C to stop.");
+  }
 } finally {
   db.close();
 }
