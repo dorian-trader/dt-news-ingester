@@ -173,6 +173,7 @@ npm run report:ticker-attention-spikes -- [recentDays=3] [baselineDays=21] [topN
 npm run report:sentiment-regime-change -- [rollingDays=7] [lookbackDays=120] [topN=50] [minRollingMentions=8]
 npm run report:headline-risk-concentration -- [lookbackHours=72] [topN=50] [minNegArticleCount=3] [minBearishPct=60] [topHeadlines=3]
 npm run report:news-breadth-market-tone -- [recentDays=7] [baselineDays=28] [topN=10] [minTopicMentions=3] [minTickerMentions=5]
+npm run report:topic-to-ticker-heatmap -- [lookbackDays=14] [topTickers=20] [topTopics=20] [minTopicMentions=2]
 ```
 
 Each report run writes to a timestamped folder and never overwrites prior outputs. Pattern:
@@ -224,3 +225,11 @@ By default, each report command also starts a local static web server and prints
 - `median_sentiment`
 - `top_trending_topics`
 - `top_ticker_flips`
+
+### Topic-to-Ticker Heatmap output columns
+
+- `ticker`
+- `topic`
+- `topic_relevance_avg`
+- `topic_sentiment_avg`
+- `topic_mention_count`
