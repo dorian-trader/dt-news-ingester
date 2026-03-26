@@ -23,8 +23,21 @@ export function openDatabase(dbPath: string): Database.Database {
   fs.mkdirSync(dir, { recursive: true });
   // Long busy timeout: backfill + container can contend on the same file (especially on Windows bind mounts).
   const db = new Database(dbPath, { timeout: 30_000 });
-  // WAL tolerates concurrent readers + writer far better than DELETE journaling across two processes.
-  db.pragma("journal_mode = WAL");
+  // WAL is best for concurrency, but Windows bind mounts into Linux containers can fail to open .db-shm.
+  // If that happens, fall back to DELETE journaling so ingest can still run reliably.
+  const requestedMode = (process.env.SQLITE_JOURNAL_MODE ?? "WAL").toUpperCase();
+  try {
+    db.pragma(`journal_mode = ${requestedMode}`);
+  } catch (err) {
+    if (requestedMode === "WAL") {
+      console.warn(
+        `[${new Date().toISOString()}] SQLITE_JOURNAL_MODE=WAL unsupported at ${dbPath}; falling back to DELETE.`,
+      );
+      db.pragma("journal_mode = DELETE");
+    } else {
+      throw err;
+    }
+  }
   db.pragma("synchronous = NORMAL");
   db.pragma("foreign_keys = ON");
   db.exec(loadSchema());

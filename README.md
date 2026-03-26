@@ -29,6 +29,7 @@ Small **TypeScript** service that polls [Alpha Vantage **NEWS_SENTIMENT**](https
    | `ALPHA_VANTAGE_API_KEY` | Yes | Your Alpha Vantage key |
    | `ALPHA_VANTAGE_LIMIT` | No | Items per request, 1–1000 (default `50`) |
    | `SQLITE_PATH` | No | SQLite file path. Default in **code** is `./data/news.db` when unset; the **Docker image** sets `/data/news.db` (overridden if your `--env-file` sets a relative path — see [Docker](#docker)) |
+| `SQLITE_JOURNAL_MODE` | No | SQLite journal mode (default `WAL`). Set `DELETE` for Docker Desktop bind mounts on Windows if WAL raises `SQLITE_IOERR_SHMOPEN` |
    | `INGEST_ONCE` | No | Set to `1` or `true` to run a **single** ingest and exit |
 
 4. **Initialize the database** — the app applies `src/schema.sql` automatically on startup (no manual migration step). With a `.env` file in the project root, `dotenv` loads it automatically. Loading data for the first time:
@@ -53,7 +54,7 @@ Small **TypeScript** service that polls [Alpha Vantage **NEWS_SENTIMENT**](https
 
    To use a different env filename/location, set `BACKFILL_ENV_FILE` (e.g. `BACKFILL_ENV_FILE=.env.backfill.production`).
 
-   **Same `news.db` as Docker + host backfill:** The app uses SQLite **WAL** mode and a **30s** busy timeout so two processes can share one file more safely. On **Windows + Docker Desktop**, sharing the DB on a bind mount still stresses SQLite; if you see `SQLITE_CORRUPT` / “malformed”, **stop the container for the backfill run** or backfill into a **copy** of the DB and merge later. You may also see `news.db-wal` / `news.db-shm` next to the database—this is normal for WAL.
+  **Same `news.db` as Docker + host backfill:** The app defaults to SQLite **WAL** mode and a **30s** busy timeout so two processes can share one file more safely. On **Windows + Docker Desktop**, bind mounts can fail to open WAL shared-memory files and raise `SQLITE_IOERR_SHMOPEN`. If that happens, set `SQLITE_JOURNAL_MODE=DELETE` for the container (or in your Docker env file). You may still see `news.db-wal` / `news.db-shm` from previous WAL runs; that is normal.
 
    Or run the continuous **5-minute** loop:
 
