@@ -33,7 +33,8 @@ async function ingestOnce(): Promise<void> {
       if (insertNewsItemIfNew(db, item)) added += 1;
     }
     console.log(
-      `[${new Date().toISOString()}] fetched ${items.length} article(s), inserted ${added} new`,
+      `[${new Date().toISOString()}] limit=${limit} (ALPHA_VANTAGE_LIMIT), ` +
+        `fetched ${items.length} article(s) in response, inserted ${added} new`,
     );
   } finally {
     db.close();

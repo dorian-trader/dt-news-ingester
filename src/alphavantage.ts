@@ -163,6 +163,16 @@ export async function fetchNewsSentiment(params: {
   }
   u.searchParams.set("apikey", params.apiKey);
 
+  if (process.env.DEBUG_ALPHA_VANTAGE_REQUEST === "1") {
+    const debugUrl = new URL(u.toString());
+    if (debugUrl.searchParams.has("apikey")) {
+      debugUrl.searchParams.set("apikey", "***");
+    }
+    console.log(
+      `[${new Date().toISOString()}] alphavantage request: ${debugUrl.toString()}`,
+    );
+  }
+
   const res = await fetch(u);
   if (!res.ok) throw new Error(`Alpha Vantage HTTP ${res.status}`);
   const body = (await res.json()) as AlphaVantageNewsResponse;
