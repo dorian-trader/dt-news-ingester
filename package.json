@@ -17,7 +17,8 @@
     "report:sentiment-regime-change": "node scripts/export-sentiment-regime-change.mjs",
     "report:headline-risk-concentration": "node scripts/export-headline-risk-concentration.mjs",
     "report:news-breadth-market-tone": "node scripts/export-news-breadth-market-tone.mjs",
-    "report:topic-to-ticker-heatmap": "node scripts/export-topic-to-ticker-heatmap.mjs"
+    "report:topic-to-ticker-heatmap": "node scripts/export-topic-to-ticker-heatmap.mjs",
+    "report:sentiment-seasonality": "node scripts/export-time-of-day-weekday-sentiment-seasonality.mjs"
   },
   "engines": {
     "node": ">=20"
