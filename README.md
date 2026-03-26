@@ -171,6 +171,7 @@ npm run report:ticker-counts
 npm run report:trending-tickers -- [recentDays=7] [baselineDays=28] [topN=10] [minRecentMentions=5]
 npm run report:ticker-attention-spikes -- [recentDays=3] [baselineDays=21] [topN=25] [minRecentMentions=3] [topHeadlines=3] [minBaselineMentions=5]
 npm run report:sentiment-regime-change -- [rollingDays=7] [lookbackDays=120] [topN=50] [minRollingMentions=8]
+npm run report:headline-risk-concentration -- [lookbackHours=72] [topN=50] [minNegArticleCount=3] [minBearishPct=60] [topHeadlines=3]
 ```
 
 Each report run writes to a timestamped folder and never overwrites prior outputs. Pattern:
@@ -206,3 +207,11 @@ By default, each report command also starts a local static web server and prints
 - `current_regime`
 - `flip_strength`
 - `days_since_flip`
+
+### Headline Risk Concentration output columns
+
+- `ticker`
+- `neg_article_count`
+- `%bearish_labels`
+- `worst_headlines`
+- `time_cluster_score`
