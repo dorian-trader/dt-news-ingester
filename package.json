@@ -15,7 +15,8 @@
     "report:trending-tickers": "node scripts/export-trending-tickers.mjs",
     "report:ticker-attention-spikes": "node scripts/export-ticker-attention-spikes.mjs",
     "report:sentiment-regime-change": "node scripts/export-sentiment-regime-change.mjs",
-    "report:headline-risk-concentration": "node scripts/export-headline-risk-concentration.mjs"
+    "report:headline-risk-concentration": "node scripts/export-headline-risk-concentration.mjs",
+    "report:news-breadth-market-tone": "node scripts/export-news-breadth-market-tone.mjs"
   },
   "engines": {
     "node": ">=20"

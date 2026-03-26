@@ -172,6 +172,7 @@ npm run report:trending-tickers -- [recentDays=7] [baselineDays=28] [topN=10] [m
 npm run report:ticker-attention-spikes -- [recentDays=3] [baselineDays=21] [topN=25] [minRecentMentions=3] [topHeadlines=3] [minBaselineMentions=5]
 npm run report:sentiment-regime-change -- [rollingDays=7] [lookbackDays=120] [topN=50] [minRollingMentions=8]
 npm run report:headline-risk-concentration -- [lookbackHours=72] [topN=50] [minNegArticleCount=3] [minBearishPct=60] [topHeadlines=3]
+npm run report:news-breadth-market-tone -- [recentDays=7] [baselineDays=28] [topN=10] [minTopicMentions=3] [minTickerMentions=5]
 ```
 
 Each report run writes to a timestamped folder and never overwrites prior outputs. Pattern:
@@ -215,3 +216,11 @@ By default, each report command also starts a local static web server and prints
 - `%bearish_labels`
 - `worst_headlines`
 - `time_cluster_score`
+
+### News Breadth and Market Tone output columns
+
+- `%bullish_articles`
+- `%bearish_articles`
+- `median_sentiment`
+- `top_trending_topics`
+- `top_ticker_flips`
