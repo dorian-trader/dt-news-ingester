@@ -168,4 +168,15 @@ ORDER BY avg_overall_score ASC;
 ```bash
 npm run report:ticker-sentiment -- <TICKER>
 npm run report:ticker-counts
+npm run report:trending-tickers -- [recentDays=7] [baselineDays=28] [topN=10] [minRecentMentions=5]
 ```
+
+### Trending Tickers output columns
+
+- `ticker`
+- `recent_count`
+- `baseline_count`
+- `recent_per_day`
+- `baseline_per_day`
+- `momentum_score`
+- `momentum_ratio`
