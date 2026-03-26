@@ -9,6 +9,20 @@ function buildTimestampUtc() {
   return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
 
+const args = process.argv.slice(2);
+if (args.includes("--help") || args.includes("-h")) {
+  console.log(`Usage: npm run report:ticker-counts
+
+Exports ticker mention counts to a timestamped CSV.
+
+Output:
+  data/reports/ticker-news-counts/<UTC_TIMESTAMP>/ticker-news-counts.csv
+
+Options:
+  -h, --help    Show this help message`);
+  process.exit(0);
+}
+
 const projectRoot = path.resolve(import.meta.dirname, "..");
 const configuredSqlitePath = process.env.SQLITE_PATH ?? "./data/news.db";
 const configuredDatabasePath = path.isAbsolute(configuredSqlitePath)
@@ -25,7 +39,9 @@ const outputPath = path.resolve(
   projectRoot,
   "data",
   "reports",
-  `ticker-news-counts-${timestamp}.csv`,
+  "ticker-news-counts",
+  timestamp,
+  "ticker-news-counts.csv",
 );
 
 const sql = fs.readFileSync(sqlPath, "utf8");

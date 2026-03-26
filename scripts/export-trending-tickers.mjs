@@ -9,10 +9,35 @@ function buildTimestampUtc() {
   return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
 
-const recentDays = Number.parseInt(process.argv[2] ?? "7", 10);
-const baselineDays = Number.parseInt(process.argv[3] ?? "28", 10);
-const topN = Number.parseInt(process.argv[4] ?? "10", 10);
-const minRecentMentions = Number.parseInt(process.argv[5] ?? "5", 10);
+const args = process.argv.slice(2);
+if (args.includes("--help") || args.includes("-h")) {
+  console.log(`Usage: npm run report:trending-tickers -- [recentDays=7] [baselineDays=28] [topN=10] [minRecentMentions=5]
+
+Ranks recently trending tickers by momentum:
+  (recent mentions/day) - (baseline mentions/day)
+
+Arguments:
+  recentDays         Recent window size in days (default: 7)
+  baselineDays       Baseline window size in days before recent window (default: 28)
+  topN               Number of rows to output (default: 10)
+  minRecentMentions  Minimum mentions in recent window (default: 5)
+
+Output:
+  data/reports/trending-tickers/<UTC_TIMESTAMP>/trending-tickers.csv
+
+Examples:
+  npm run report:trending-tickers
+  npm run report:trending-tickers -- 7 30 15 8
+
+Options:
+  -h, --help    Show this help message`);
+  process.exit(0);
+}
+
+const recentDays = Number.parseInt(args[0] ?? "7", 10);
+const baselineDays = Number.parseInt(args[1] ?? "28", 10);
+const topN = Number.parseInt(args[2] ?? "10", 10);
+const minRecentMentions = Number.parseInt(args[3] ?? "5", 10);
 
 if (
   !Number.isInteger(recentDays) ||
@@ -116,7 +141,9 @@ try {
     projectRoot,
     "data",
     "reports",
-    `trending-tickers-${timestamp}.csv`,
+    "trending-tickers",
+    timestamp,
+    "trending-tickers.csv",
   );
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 

@@ -9,7 +9,24 @@ function buildTimestampUtc() {
   return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
 
-const inputTicker = process.argv[2]?.trim().toUpperCase();
+const args = process.argv.slice(2);
+if (args.includes("--help") || args.includes("-h")) {
+  console.log(`Usage: npm run report:ticker-sentiment -- <TICKER>
+
+Exports 12-month weekly and monthly average sentiment for one ticker.
+
+Arguments:
+  <TICKER>      Required ticker symbol (e.g. AAPL)
+
+Output:
+  data/reports/ticker-<ticker>-sentiment-stats/<UTC_TIMESTAMP>/ticker-<ticker>-sentiment-stats.json
+
+Options:
+  -h, --help    Show this help message`);
+  process.exit(0);
+}
+
+const inputTicker = args[0]?.trim().toUpperCase();
 if (!inputTicker) {
   console.error("Usage: npm run report:ticker-sentiment -- <TICKER>");
   process.exit(1);
@@ -85,7 +102,9 @@ try {
     projectRoot,
     "data",
     "reports",
-    `ticker-${inputTicker.toLowerCase()}-sentiment-stats-${timestamp}.json`,
+    `ticker-${inputTicker.toLowerCase()}-sentiment-stats`,
+    timestamp,
+    `ticker-${inputTicker.toLowerCase()}-sentiment-stats.json`,
   );
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(output, null, 2)}\n`, "utf8");
