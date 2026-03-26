@@ -21,8 +21,10 @@ function loadSchema(): string {
 export function openDatabase(dbPath: string): Database.Database {
   const dir = path.dirname(dbPath);
   fs.mkdirSync(dir, { recursive: true });
-  const db = new Database(dbPath, { timeout: 5000 });
-  db.pragma("journal_mode = DELETE");
+  // Long busy timeout: backfill + container can contend on the same file (especially on Windows bind mounts).
+  const db = new Database(dbPath, { timeout: 30_000 });
+  // WAL tolerates concurrent readers + writer far better than DELETE journaling across two processes.
+  db.pragma("journal_mode = WAL");
   db.pragma("synchronous = NORMAL");
   db.pragma("foreign_keys = ON");
   db.exec(loadSchema());

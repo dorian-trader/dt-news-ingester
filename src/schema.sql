@@ -54,3 +54,33 @@ CREATE TABLE IF NOT EXISTS ticker_sentiment (
 CREATE INDEX IF NOT EXISTS idx_ticker_sentiment_ticker ON ticker_sentiment (ticker);
 CREATE INDEX IF NOT EXISTS idx_ticker_sentiment_ticker_score ON ticker_sentiment (ticker, ticker_sentiment_score);
 CREATE INDEX IF NOT EXISTS idx_ticker_sentiment_news ON ticker_sentiment (news_id);
+
+-- Backfill runner state (idempotent stop/start)
+CREATE TABLE IF NOT EXISTS backfill_runs (
+  run_id TEXT PRIMARY KEY,
+  function_name TEXT NOT NULL DEFAULT 'NEWS_SENTIMENT',
+  lower_bound TEXT NOT NULL, -- ISO-8601 UTC
+  upper_bound TEXT NOT NULL, -- ISO-8601 UTC
+  alpha_vantage_limit INTEGER NOT NULL,
+  min_interval_seconds INTEGER NOT NULL,
+  chunk_seconds INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  completed_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS backfill_intervals (
+  run_id TEXT NOT NULL REFERENCES backfill_runs (run_id) ON DELETE CASCADE,
+  function_name TEXT NOT NULL,
+  start_time TEXT NOT NULL, -- ISO-8601 UTC
+  end_time TEXT NOT NULL, -- ISO-8601 UTC (inclusive, second precision)
+  status TEXT NOT NULL, -- 'pending' | 'in_progress' | 'done' | 'error'
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  started_at TEXT,
+  finished_at TEXT,
+  last_result_count INTEGER,
+  error TEXT,
+  PRIMARY KEY (run_id, function_name, start_time, end_time)
+);
+
+CREATE INDEX IF NOT EXISTS idx_backfill_intervals_run_status
+  ON backfill_intervals (run_id, function_name, status, end_time);

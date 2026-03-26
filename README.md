@@ -37,6 +37,24 @@ Small **TypeScript** service that polls [Alpha Vantage **NEWS_SENTIMENT**](https
    npm run ingest-once
    ```
 
+5. (Optional) **Backfill a historical window** (idempotent; safe to stop/start):
+
+   ```bash
+   npm run backfill
+   ```
+
+   The backfill runner loads a dedicated env file (`.env.backfill` by default). Create it based on `.env.example` and set:
+
+   - `ALPHA_VANTAGE_LIMIT=1000` (recommended)
+   - `BACKFILL_LOWER_BOUND` / `BACKFILL_UPPER_BOUND`
+   - `BACKFILL_MAX_REQUESTS_PER_MINUTE` (default `50`, hard cap `75`) or `BACKFILL_MIN_MS_BETWEEN_REQUESTS` for exact spacing between API calls
+
+   `time_from` / `time_to` are minute-precision. If one minute still returns **`ALPHA_VANTAGE_LIMIT`** articles, the backfill **stores those rows and continues** (Alpha Vantage may omit additional articles that minute).
+
+   To use a different env filename/location, set `BACKFILL_ENV_FILE` (e.g. `BACKFILL_ENV_FILE=.env.backfill.production`).
+
+   **Same `news.db` as Docker + host backfill:** The app uses SQLite **WAL** mode and a **30s** busy timeout so two processes can share one file more safely. On **Windows + Docker Desktop**, sharing the DB on a bind mount still stresses SQLite; if you see `SQLITE_CORRUPT` / “malformed”, **stop the container for the backfill run** or backfill into a **copy** of the DB and merge later. You may also see `news.db-wal` / `news.db-shm` next to the database—this is normal for WAL.
+
    Or run the continuous **5-minute** loop:
 
    ```bash

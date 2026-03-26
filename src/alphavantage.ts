@@ -3,6 +3,28 @@ import { normalizeSentimentLabel } from "./sentiment.js";
 import { parseAlphaVantageTime } from "./time.js";
 import type { NewsItem, TickerSentiment, Topic } from "./types.js";
 
+/** NEWS_SENTIMENT `time_from` / `time_to`: `YYYYMMDDTHHMM` (minute precision, UTC). See Alpha Vantage docs. */
+export function toAlphaVantageTimeParam(time: Date | string): string {
+  if (typeof time === "string") {
+    const s = time.trim();
+    if (/^\d{8}T\d{4}$/.test(s)) return s;
+    // Feed timestamps use second precision; API range params do not.
+    if (/^\d{8}T\d{6}$/.test(s)) return s.slice(0, 13);
+    const parsed = new Date(s);
+    if (!Number.isNaN(parsed.getTime())) {
+      return toAlphaVantageTimeParam(parsed);
+    }
+    return s;
+  }
+
+  const y = time.getUTCFullYear().toString().padStart(4, "0");
+  const mo = (time.getUTCMonth() + 1).toString().padStart(2, "0");
+  const d = time.getUTCDate().toString().padStart(2, "0");
+  const h = time.getUTCHours().toString().padStart(2, "0");
+  const mi = time.getUTCMinutes().toString().padStart(2, "0");
+  return `${y}${mo}${d}T${h}${mi}`;
+}
+
 function num(raw: string | number | undefined | null, fallback = 0): number {
   if (raw == null || raw === "") return fallback;
   const n = typeof raw === "number" ? raw : Number(raw);
@@ -126,11 +148,19 @@ export function mapFeedEntryToNewsItem(entry: AlphaVantageFeedEntry): NewsItem |
 export async function fetchNewsSentiment(params: {
   apiKey: string;
   limit?: number;
+  time_from?: Date | string;
+  time_to?: Date | string;
 }): Promise<NewsItem[]> {
   const limit = params.limit ?? 50;
   const u = new URL("https://www.alphavantage.co/query");
   u.searchParams.set("function", "NEWS_SENTIMENT");
   u.searchParams.set("limit", String(Math.min(Math.max(limit, 1), 1000)));
+  if (params.time_from != null) {
+    u.searchParams.set("time_from", toAlphaVantageTimeParam(params.time_from));
+  }
+  if (params.time_to != null) {
+    u.searchParams.set("time_to", toAlphaVantageTimeParam(params.time_to));
+  }
   u.searchParams.set("apikey", params.apiKey);
 
   const res = await fetch(u);
