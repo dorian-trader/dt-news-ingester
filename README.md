@@ -170,6 +170,7 @@ npm run report:ticker-sentiment -- <TICKER>
 npm run report:ticker-counts
 npm run report:trending-tickers -- [recentDays=7] [baselineDays=28] [topN=10] [minRecentMentions=5]
 npm run report:ticker-attention-spikes -- [recentDays=3] [baselineDays=21] [topN=25] [minRecentMentions=3] [topHeadlines=3] [minBaselineMentions=5]
+npm run report:sentiment-regime-change -- [rollingDays=7] [lookbackDays=120] [topN=50] [minRollingMentions=8]
 ```
 
 Each report run writes to a timestamped folder and never overwrites prior outputs. Pattern:
@@ -197,3 +198,11 @@ By default, each report command also starts a local static web server and prints
 - `spike_ratio`
 - `is_new_coverage`
 - `top_recent_headlines`
+
+### Sentiment Regime Change output columns
+
+- `ticker`
+- `prev_regime`
+- `current_regime`
+- `flip_strength`
+- `days_since_flip`
