@@ -5,6 +5,10 @@ import Database from "better-sqlite3";
 
 dotenv.config();
 
+function buildTimestampUtc() {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+
 const projectRoot = path.resolve(import.meta.dirname, "..");
 const configuredSqlitePath = process.env.SQLITE_PATH ?? "./data/news.db";
 const configuredDatabasePath = path.isAbsolute(configuredSqlitePath)
@@ -16,7 +20,13 @@ const databasePath = fs.existsSync(configuredDatabasePath)
   : defaultLocalDatabasePath;
 
 const sqlPath = path.resolve(import.meta.dirname, "ticker-news-counts.sql");
-const outputPath = path.resolve(projectRoot, "data", "reports", "ticker-news-counts.csv");
+const timestamp = buildTimestampUtc();
+const outputPath = path.resolve(
+  projectRoot,
+  "data",
+  "reports",
+  `ticker-news-counts-${timestamp}.csv`,
+);
 
 const sql = fs.readFileSync(sqlPath, "utf8");
 if (!fs.existsSync(databasePath)) {

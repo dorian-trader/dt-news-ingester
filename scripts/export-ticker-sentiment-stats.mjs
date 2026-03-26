@@ -5,6 +5,10 @@ import Database from "better-sqlite3";
 
 dotenv.config();
 
+function buildTimestampUtc() {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+
 const inputTicker = process.argv[2]?.trim().toUpperCase();
 if (!inputTicker) {
   console.error("Usage: npm run report:ticker-sentiment -- <TICKER>");
@@ -76,11 +80,12 @@ try {
     monthly,
   };
 
+  const timestamp = buildTimestampUtc();
   const outputPath = path.resolve(
     projectRoot,
     "data",
     "reports",
-    `ticker-${inputTicker.toLowerCase()}-sentiment-stats.json`,
+    `ticker-${inputTicker.toLowerCase()}-sentiment-stats-${timestamp}.json`,
   );
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(output, null, 2)}\n`, "utf8");

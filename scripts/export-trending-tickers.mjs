@@ -5,6 +5,10 @@ import Database from "better-sqlite3";
 
 dotenv.config();
 
+function buildTimestampUtc() {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+
 const recentDays = Number.parseInt(process.argv[2] ?? "7", 10);
 const baselineDays = Number.parseInt(process.argv[3] ?? "28", 10);
 const topN = Number.parseInt(process.argv[4] ?? "10", 10);
@@ -107,7 +111,13 @@ try {
 
   const rows = db.prepare(sql).all();
 
-  const outputPath = path.resolve(projectRoot, "data", "reports", "trending-tickers.csv");
+  const timestamp = buildTimestampUtc();
+  const outputPath = path.resolve(
+    projectRoot,
+    "data",
+    "reports",
+    `trending-tickers-${timestamp}.csv`,
+  );
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
   const header =

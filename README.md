@@ -171,6 +171,8 @@ npm run report:ticker-counts
 npm run report:trending-tickers -- [recentDays=7] [baselineDays=28] [topN=10] [minRecentMentions=5]
 ```
 
+Each report run writes a new timestamped file under `data/reports/` (UTC suffix like `20260326T035533Z`) and never overwrites prior outputs.
+
 ### Trending Tickers output columns
 
 - `ticker`
