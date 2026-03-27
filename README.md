@@ -182,6 +182,20 @@ Each report run writes to a timestamped folder and never overwrites prior output
 
 By default, each report command also starts a local static web server and prints a direct URL to the generated report (and Plotly chart HTML for sentiment/trending reports). Use `--no-serve` to generate files without starting the server.
 
+## All Reports Server Landing Page
+
+```bash
+npm run report:all
+```
+
+Generates data/reports/index.html that links to latest output from each report family,
+then serves data/reports as a static website.
+
+Options:
+  --no-serve    Generate index only, do not start web server
+  -h, --help    Show this help message
+
+
 ### Trending Tickers output columns
 
 - `ticker`

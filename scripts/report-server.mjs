@@ -26,11 +26,35 @@ function resolveRequestPath(rootDir, requestUrl) {
   return candidatePath;
 }
 
-export async function startReportServer({ rootDir, reportPath, requestedPort }) {
+function getClientIp(req) {
+  const forwardedFor = req.headers["x-forwarded-for"];
+  if (typeof forwardedFor === "string" && forwardedFor.length > 0) {
+    return forwardedFor.split(",")[0].trim();
+  }
+  if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+    return forwardedFor[0];
+  }
+  return req.socket?.remoteAddress ?? "unknown";
+}
+
+function logRequest(req, statusCode, extra = "") {
+  const ip = getClientIp(req);
+  const method = req.method ?? "GET";
+  const url = req.url ?? "/";
+  const suffix = extra ? ` ${extra}` : "";
+  process.stdout.write(`[report-server] ${ip} "${method} ${url}" ${statusCode}${suffix}\n`);
+}
+
+export async function startReportServer({
+  rootDir,
+  reportPath,
+  requestedPort,
+  requestedHost = "127.0.0.1",
+}) {
   const absoluteRoot = path.resolve(rootDir);
   const absoluteReportPath = path.resolve(reportPath);
   const relativeReportPath = path.relative(absoluteRoot, absoluteReportPath).replace(/\\/g, "/");
-  const host = "127.0.0.1";
+  const host = requestedHost;
   let port = requestedPort;
 
   while (true) {
@@ -39,6 +63,7 @@ export async function startReportServer({ rootDir, reportPath, requestedPort }) 
       if (!resolved) {
         res.statusCode = 403;
         res.end("Forbidden");
+        res.once("finish", () => logRequest(req, res.statusCode));
         return;
       }
 
@@ -50,9 +75,12 @@ export async function startReportServer({ rootDir, reportPath, requestedPort }) 
       if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
         res.statusCode = 404;
         res.end("Not found");
+        res.once("finish", () => logRequest(req, res.statusCode));
         return;
       }
 
+      const relativeFilePath = path.relative(absoluteRoot, filePath).replace(/\\/g, "/");
+      res.once("finish", () => logRequest(req, res.statusCode, `-> /${relativeFilePath}`));
       res.statusCode = 200;
       res.setHeader("Content-Type", contentTypeFor(filePath));
       fs.createReadStream(filePath).pipe(res);
