@@ -16,14 +16,24 @@ function contentTypeFor(filePath) {
   return MIME_TYPES[ext] ?? "application/octet-stream";
 }
 
+/**
+ * decodeURIComponent throws URIError on malformed percent-encoding (common from bots/scanners).
+ * Never throw from path parsing — return a result the handler can map to 400.
+ */
 function resolveRequestPath(rootDir, requestUrl) {
-  const pathname = decodeURIComponent((requestUrl ?? "/").split("?")[0] || "/");
+  const rawPath = (requestUrl ?? "/").split("?")[0] || "/";
+  let pathname;
+  try {
+    pathname = decodeURIComponent(rawPath);
+  } catch {
+    return { kind: "bad-uri" };
+  }
   const relativePath = pathname === "/" ? "." : pathname.replace(/^\/+/, "");
   const candidatePath = path.resolve(rootDir, relativePath);
   if (!candidatePath.startsWith(rootDir)) {
-    return null;
+    return { kind: "forbidden" };
   }
-  return candidatePath;
+  return { kind: "ok", filePath: candidatePath };
 }
 
 function getClientIp(req) {
@@ -38,11 +48,12 @@ function getClientIp(req) {
 }
 
 function logRequest(req, statusCode, extra = "") {
+  const ts = new Date().toISOString();
   const ip = getClientIp(req);
   const method = req.method ?? "GET";
   const url = req.url ?? "/";
   const suffix = extra ? ` ${extra}` : "";
-  process.stdout.write(`[report-server] ${ip} "${method} ${url}" ${statusCode}${suffix}\n`);
+  process.stdout.write(`[report-server] [${ts}] ${ip} "${method} ${url}" ${statusCode}${suffix}\n`);
 }
 
 export async function startReportServer({
@@ -59,31 +70,48 @@ export async function startReportServer({
 
   while (true) {
     const server = http.createServer((req, res) => {
-      const resolved = resolveRequestPath(absoluteRoot, req.url);
-      if (!resolved) {
-        res.statusCode = 403;
-        res.end("Forbidden");
-        res.once("finish", () => logRequest(req, res.statusCode));
-        return;
-      }
+      try {
+        const resolved = resolveRequestPath(absoluteRoot, req.url);
+        if (resolved.kind === "bad-uri") {
+          res.statusCode = 400;
+          res.end("Bad Request");
+          res.once("finish", () => logRequest(req, res.statusCode, "(malformed URI)"));
+          return;
+        }
+        if (resolved.kind === "forbidden") {
+          res.statusCode = 403;
+          res.end("Forbidden");
+          res.once("finish", () => logRequest(req, res.statusCode));
+          return;
+        }
 
-      let filePath = resolved;
-      if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
-        filePath = path.join(filePath, "index.html");
-      }
+        let filePath = resolved.filePath;
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+          filePath = path.join(filePath, "index.html");
+        }
 
-      if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
-        res.statusCode = 404;
-        res.end("Not found");
-        res.once("finish", () => logRequest(req, res.statusCode));
-        return;
-      }
+        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+          res.statusCode = 404;
+          res.end("Not found");
+          res.once("finish", () => logRequest(req, res.statusCode));
+          return;
+        }
 
-      const relativeFilePath = path.relative(absoluteRoot, filePath).replace(/\\/g, "/");
-      res.once("finish", () => logRequest(req, res.statusCode, `-> /${relativeFilePath}`));
-      res.statusCode = 200;
-      res.setHeader("Content-Type", contentTypeFor(filePath));
-      fs.createReadStream(filePath).pipe(res);
+        const relativeFilePath = path.relative(absoluteRoot, filePath).replace(/\\/g, "/");
+        res.once("finish", () => logRequest(req, res.statusCode, `-> /${relativeFilePath}`));
+        res.statusCode = 200;
+        res.setHeader("Content-Type", contentTypeFor(filePath));
+        fs.createReadStream(filePath).pipe(res);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.end("Internal Server Error");
+        }
+        res.once("finish", () =>
+          logRequest(req, res.statusCode, `(handler error: ${message})`),
+        );
+      }
     });
 
     const listenResult = await new Promise((resolve) => {
