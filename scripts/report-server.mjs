@@ -1,6 +1,7 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import { createReportIpBlocklist } from "./report-ip-blocklist.mjs";
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -68,9 +69,24 @@ export async function startReportServer({
   const host = requestedHost;
   let port = requestedPort;
 
+  const blocklist = createReportIpBlocklist({
+    stateFilePath: path.join(absoluteRoot, ".report-ip-blocklist.json"),
+  });
+
   while (true) {
     const server = http.createServer((req, res) => {
       try {
+        const ip = getClientIp(req);
+        const block = blocklist.evaluateRequest(ip, req.url);
+        if (block.blocked) {
+          res.statusCode = 403;
+          res.end("Forbidden");
+          res.once("finish", () =>
+            logRequest(req, 403, `(blocked: ${block.reason})`),
+          );
+          return;
+        }
+
         const resolved = resolveRequestPath(absoluteRoot, req.url);
         if (resolved.kind === "bad-uri") {
           res.statusCode = 400;
@@ -93,7 +109,10 @@ export async function startReportServer({
         if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
           res.statusCode = 404;
           res.end("Not found");
-          res.once("finish", () => logRequest(req, res.statusCode));
+          res.once("finish", () => {
+            blocklist.record404(ip);
+            logRequest(req, res.statusCode);
+          });
           return;
         }
 
