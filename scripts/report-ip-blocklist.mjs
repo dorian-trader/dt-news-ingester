@@ -20,12 +20,24 @@ export function pathTriggersInstantProbeBan(url) {
   } catch {
     // malformed; still scan raw
   }
+
+  const NEEDLES = [
+    ".php", ".env", ".aws", ".git",
+    "wp-admin", "wp-login", "xmlrpc.php",
+    "config.php", "setup.php", "install.php",
+    ".htaccess", ".ssh", "id_rsa",
+    "backup", "dump.sql", ".bak",
+    "../", "%2e%2e", "%252e",
+    "cgi-bin", "server-status", ".htpasswd",
+    "web.config", "appsettings.json",
+  ];
+
   const a = pathPart.toLowerCase();
   const b = decoded.toLowerCase();
   for (const h of [a, b]) {
-    if (h.includes(".php")) return "probe:.php";
-    if (h.includes(".env")) return "probe:.env";
-    if (h.includes(".aws")) return "probe:.aws";
+    for (const n of NEEDLES) {
+      if (h.includes(n)) return `probe:${n}`;
+    }
   }
   return null;
 }
