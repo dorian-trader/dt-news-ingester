@@ -37,15 +37,62 @@ function resolveRequestPath(rootDir, requestUrl) {
   return { kind: "ok", filePath: candidatePath };
 }
 
+/** Strip common Node / proxy decoration so matching stays simple. */
+function normalizedSocketIp(addr) {
+  if (addr == null || addr === "") return null;
+  let s = String(addr).trim();
+  if (s.startsWith("::ffff:")) s = s.slice("::ffff:".length);
+  if (s.startsWith("[") && s.includes("]")) s = s.slice(1, s.indexOf("]"));
+  return s || null;
+}
+
+/**
+ * True when the TCP peer is loopback or RFC1918 — i.e. we expect a reverse proxy (NPM, Docker)
+ * in front, not a browser connecting straight to Node from the public internet.
+ */
+function isTrustedProxyPeer(directIp) {
+  const ip = normalizedSocketIp(directIp);
+  if (!ip) return false;
+  if (ip === "127.0.0.1" || ip === "::1") return true;
+  if (ip.startsWith("10.")) return true;
+  if (ip.startsWith("192.168.")) return true;
+  const m = /^172\.(\d+)\./.exec(ip);
+  if (m) {
+    const oct2 = Number(m[1]);
+    if (oct2 >= 16 && oct2 <= 31) return true;
+  }
+  return false;
+}
+
+function forwardedForHeaderValue(req) {
+  const v = req.headers["x-forwarded-for"];
+  if (typeof v === "string" && v.length > 0) return v;
+  if (Array.isArray(v) && v.length > 0) return v.join(", ");
+  return "";
+}
+
+/**
+ * Client IP for logging / blocklist. When trustProxy is true (default unless REPORT_TRUST_PROXY=0):
+ * - If the TCP peer looks like a local/Docker proxy, use the rightmost entry of X-Forwarded-For
+ *   (nginx appends $remote_addr after any client-spoofed left entries).
+ * - Otherwise ignore X-Forwarded-For so random scanners cannot claim 127.0.0.1.
+ */
 function getClientIp(req) {
-  const forwardedFor = req.headers["x-forwarded-for"];
-  if (typeof forwardedFor === "string" && forwardedFor.length > 0) {
-    return forwardedFor.split(",")[0].trim();
+  const trustProxy = process.env.REPORT_TRUST_PROXY !== "0";
+  const direct = req.socket?.remoteAddress ?? null;
+  const xff = forwardedForHeaderValue(req);
+
+  if (trustProxy && xff && isTrustedProxyPeer(direct)) {
+    const parts = xff
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length > 0) {
+      return normalizedSocketIp(parts[parts.length - 1]) ?? parts[parts.length - 1];
+    }
   }
-  if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-    return forwardedFor[0];
-  }
-  return req.socket?.remoteAddress ?? "unknown";
+
+  return normalizedSocketIp(direct) ?? direct ?? "unknown";
 }
 
 function logRequest(req, statusCode, extra = "") {
